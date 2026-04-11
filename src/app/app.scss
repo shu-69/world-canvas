@@ -1,0 +1,18 @@
+.header {
+    position: absolute; 
+    margin: 20px;
+
+
+    .icon-wrapper {
+        background: rgb(139 0 139 / 28%);
+        padding: 12px 14px;
+        border-radius: 14px;
+        box-shadow: 0 0 16px 7px rgb(139 0 139 / 28%);
+    }
+}
+
+.loader-wrapper {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}

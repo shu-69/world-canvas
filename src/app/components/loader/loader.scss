@@ -1,0 +1,44 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: yellow;
+  height: 40vh;
+  font-size: 15vh;
+  font-weight: 900;
+  white-space: nowrap;
+  width: 100vw;
+  overflow: hidden;
+
+//   animation: slideIn 6s ease-out forwards;
+}
+
+.text {
+  display: inline-block;
+
+  animation: moveText 8s linear infinite;
+  animation-delay: 1.5s;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes moveText {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.wrapper,
+.text {
+  will-change: transform;
+}
