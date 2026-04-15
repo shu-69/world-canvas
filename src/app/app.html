@@ -1,12 +1,12 @@
 <div class="header">
     <div class="icon-wrapper">
-        <span>World Canvas</span>
+        <!-- <span>World Canvas</span> -->
     </div>
     <div></div>
 </div>
-@if(isLoaderActive) {
+@if(isLoaderActive()) {
     <div class="loader-wrapper">
-        <app-loader [loaderText]="loaderText"></app-loader>
+        <app-loader [loaderText]="loaderText()"></app-loader>
     </div>
 }
 <app-canvas></app-canvas>

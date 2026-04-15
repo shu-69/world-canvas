@@ -1,4 +1,4 @@
-import { Component, signal, NgZone } from '@angular/core';
+import { Component, signal, NgZone, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Canvas } from './components/canvas/canvas';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -14,28 +14,31 @@ import { Loader } from './components/loader/loader';
 })
 export class App {
   protected readonly title = signal('world-canvas');
-  isLoaderActive = false;
-  loaderText: string = 'Please Wait///';
-
+  isLoaderActive = signal<boolean>(false);
+  loaderText = signal<string>('Please Wait');
+    
   constructor(private ngZone: NgZone) {
-    this.showLoader();
+    // this.showLoader();
   }
 
   intervalId: any;
 
   showLoader() {
     // ::todo:: will do this later
-    this.isLoaderActive = true;
+    this.isLoaderActive.set(true);
+
+    setTimeout(() => {
+      this.isLoaderActive.set(false);
+      // alert('Welcome to World Canvas!');
+    }, 8000);
 
     const emojis = [':)', '///', ';)'];
-    const baseText = 'Loading';
-
+    const baseText = this.loaderText();8
     let index = 0;
 
     this.intervalId = setInterval(() => {
       this.ngZone.run(() => {
-        console.log(this.loaderText);
-        this.loaderText = baseText + ' ' + emojis[index];
+        this.loaderText.set(baseText + ' ' + emojis[index]);
         index = (index + 1) % emojis.length;
       });
     }, 1000);

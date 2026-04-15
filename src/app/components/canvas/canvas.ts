@@ -25,16 +25,19 @@ export class Canvas implements AfterViewInit {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
 
-    canvas.width = this.canvasWrapper.nativeElement.clientWidth; // window.innerWidth - 0;
-    canvas.height = this.canvasWrapper.nativeElement.clientHeight; // window.innerHeight;
+    this.load();
+
+    canvas.width = this.canvasWrapper.nativeElement.clientWidth;
+    canvas.height = this.canvasWrapper.nativeElement.clientHeight;
 
     this.resizeCanvas();
-    this.drawGrid(); // 👈 ADD THIS
+    this.drawGrid();
 
     canvas.addEventListener('mousedown', this.start.bind(this));
     canvas.addEventListener('mousemove', this.draw.bind(this));
     canvas.addEventListener('mouseup', this.stop.bind(this));
   }
+  
   start(e: MouseEvent) {
     this.drawing = true;
     this.ctx.beginPath();
@@ -57,6 +60,7 @@ export class Canvas implements AfterViewInit {
 
   stop() {
     this.drawing = false;
+    this.save();
   }
 
   clear() {
@@ -66,7 +70,38 @@ export class Canvas implements AfterViewInit {
   }
 
   save() {
-    console.log(this.strokes); // send this to backend
+    const canvasStrokes = JSON.stringify(this.strokes);
+    localStorage.setItem('canvas-data', canvasStrokes);
+  }
+
+  load() {
+    const data = localStorage.getItem('canvas-data');
+
+    if (!data) return;
+
+    this.strokes = JSON.parse(data);
+    console.log('Loaded strokes:', this.strokes);
+    this.redraw();
+  }
+
+  redraw() {
+    this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
+    
+    this.strokes.forEach(stroke => {
+      this.ctx.beginPath();
+      this.ctx.strokeStyle = stroke.color;
+      this.ctx.lineWidth = stroke.width;
+
+      stroke.forEach((p: any, index: number) => {
+        if (index === 0) {
+          this.ctx.moveTo(p.x, p.y);
+        } else {
+          this.ctx.lineTo(p.x, p.y);
+        }
+      });
+
+      this.ctx.stroke();
+    });
   }
 
   drawGrid(spacing: number = 25) {

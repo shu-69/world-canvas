@@ -8,5 +8,5 @@ import { Component, Input } from '@angular/core';
   styleUrl: './loader.scss',
 })
 export class Loader {
-  @Input() loaderText : string = '';
+  @Input() loaderText: string = '';
 }
