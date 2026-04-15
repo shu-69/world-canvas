@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "dist/world-canvas",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
