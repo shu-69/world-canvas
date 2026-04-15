@@ -1,6 +1,8 @@
 import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { getFirestore } from 'firebase/firestore';
+import { collection, addDoc, getDocs, onSnapshot } from 'firebase/firestore';
 
 @Component({
   selector: 'app-canvas',
@@ -10,9 +12,11 @@ import { FormsModule } from '@angular/forms';
   standalone: true
 })
 export class Canvas implements AfterViewInit {
+  protected db = getFirestore();
+  
   color: string = '#000000';
   brushSize: number = 3;
-  mode: 'pen' | 'eraser' = 'pen';
+  mode: 'pen' | 'eraser' | 'rect' | 'circle' | 'line' | 'text' = 'pen';
 
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('CanvasWrapper') canvasWrapper!: ElementRef<HTMLDivElement>;
@@ -20,12 +24,11 @@ export class Canvas implements AfterViewInit {
 
   drawing = false;
   strokes: any[] = [];
+  redoStack: any[] = [];
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
-
-    this.load();
 
     canvas.width = this.canvasWrapper.nativeElement.clientWidth;
     canvas.height = this.canvasWrapper.nativeElement.clientHeight;
@@ -33,34 +36,64 @@ export class Canvas implements AfterViewInit {
     this.resizeCanvas();
     this.drawGrid();
 
+    this.listenToCanvas();
+
     canvas.addEventListener('mousedown', this.start.bind(this));
     canvas.addEventListener('mousemove', this.draw.bind(this));
     canvas.addEventListener('mouseup', this.stop.bind(this));
   }
-  
+
   start(e: MouseEvent) {
     this.drawing = true;
+
     this.ctx.beginPath();
     this.ctx.moveTo(e.offsetX, e.offsetY);
 
-    this.strokes.push([{ x: e.offsetX, y: e.offsetY }]);
+    const stroke = {
+      points: [{ x: e.offsetX, y: e.offsetY }],
+      color: this.color,
+      width: this.brushSize
+    };
+
+    this.strokes.push(stroke);
   }
 
   draw(e: MouseEvent) {
     if (!this.drawing) return;
 
+    const currentStroke = this.strokes[this.strokes.length - 1];
+
     this.ctx.lineTo(e.offsetX, e.offsetY);
     this.ctx.stroke();
 
-    this.strokes[this.strokes.length - 1].push({
+    currentStroke.points.push({
       x: e.offsetX,
       y: e.offsetY
     });
   }
 
-  stop() {
-    this.drawing = false;
+  undo() {
+    if (!this.strokes.length) return;
+    this.redoStack.push(this.strokes.pop());
+    this.redraw();
     this.save();
+  }
+
+  redo() {
+    if (!this.redoStack.length) return;
+    this.strokes.push(this.redoStack.pop());
+    this.redraw();
+    this.save();
+  }
+
+  async stop() {
+    if (!this.drawing) return;
+
+    this.drawing = false;
+
+    const lastStroke = this.strokes[this.strokes.length - 1];
+
+    await this.saveStroke(lastStroke);
   }
 
   clear() {
@@ -69,39 +102,102 @@ export class Canvas implements AfterViewInit {
     this.strokes = [];
   }
 
-  save() {
-    const canvasStrokes = JSON.stringify(this.strokes);
-    localStorage.setItem('canvas-data', canvasStrokes);
+  async saveStroke(stroke: any) {
+    try {
+      const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
+
+      await addDoc(strokesRef, stroke);
+
+    } catch (e) {
+      console.error('Error saving stroke:', e);
+    }
   }
 
-  load() {
-    const data = localStorage.getItem('canvas-data');
+  async save() {
+    return;
+    try {
+      const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
 
-    if (!data) return;
+      for (const stroke of this.strokes) {
+        await addDoc(strokesRef, stroke);
+      }
 
-    this.strokes = JSON.parse(data);
-    console.log('Loaded strokes:', this.strokes);
-    this.redraw();
+      console.log('Saved to Firestore');
+    } catch (e) {
+      console.error('Error saving:', e);
+    }
+}
+
+  async load() {
+    try {
+      const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
+
+      const snapshot = await getDocs(strokesRef);
+
+      this.strokes = snapshot.docs.map(doc => doc.data());
+
+      console.log('Loaded strokes:', this.strokes);
+
+      this.redraw();
+    } catch (e) {
+      console.error('Error loading:', e);
+    }
+  }
+  
+  listenToCanvas() {
+    const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
+
+    onSnapshot(strokesRef, snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const stroke = change.doc.data();
+
+          this.strokes.push(stroke);
+          this.drawStroke(stroke);
+        }
+      });
+    });
   }
 
   redraw() {
     this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
-    
+
     this.strokes.forEach(stroke => {
-      this.ctx.beginPath();
-      this.ctx.strokeStyle = stroke.color;
-      this.ctx.lineWidth = stroke.width;
-
-      stroke.forEach((p: any, index: number) => {
-        if (index === 0) {
-          this.ctx.moveTo(p.x, p.y);
-        } else {
-          this.ctx.lineTo(p.x, p.y);
-        }
-      });
-
-      this.ctx.stroke();
+      this.drawStroke(stroke);
     });
+    // this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
+    
+    // this.strokes.forEach(stroke => {
+    //   this.ctx.beginPath();
+    //   this.ctx.strokeStyle = stroke.color;
+    //   this.ctx.lineWidth = stroke.width;
+
+    //   stroke.forEach((p: any, index: number) => {
+    //     if (index === 0) {
+    //       this.ctx.moveTo(p.x, p.y);
+    //     } else {
+    //       this.ctx.lineTo(p.x, p.y);
+    //     }
+    //   });
+
+    //   this.ctx.stroke();
+    // });
+  }
+
+  drawStroke(stroke: any) {
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = stroke.color;
+    this.ctx.lineWidth = stroke.width;
+
+    stroke.points.forEach((p: any, index: number) => {
+      if (index === 0) {
+        this.ctx.moveTo(p.x, p.y);
+      } else {
+        this.ctx.lineTo(p.x, p.y);
+      }
+    });
+
+    this.ctx.stroke();
   }
 
   drawGrid(spacing: number = 25) {
@@ -119,24 +215,16 @@ export class Canvas implements AfterViewInit {
     }
   }
 
-  setColor() {
-    this.ctx.strokeStyle = this.color;
-  }
-
-  setSize() {
-    this.ctx.lineWidth = this.brushSize;
-  }
-
-  setPen() {
-    this.mode = 'pen';
-  }
-
-  setEraser() {
-    this.mode = 'eraser';
-  }
-
   addImage(event: any) {
 
+  }
+
+  exportCanvas() {
+    const canvas = this.canvasRef.nativeElement;
+    const link = document.createElement('a');
+    link.download = 'canvas.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   }
 
   resizeCanvas() {
@@ -147,4 +235,13 @@ export class Canvas implements AfterViewInit {
     canvas.width = rect.width;
     canvas.height = rect.height;
   }
+
+  setColor() { this.ctx.strokeStyle = this.color; }
+  setSize() { this.ctx.lineWidth = this.brushSize; }
+  setPen() { this.mode = 'pen'; }
+  setEraser() { this.mode = 'eraser'; }
+  setRect() { this.mode = 'rect'; }
+  setCircle() { this.mode = 'circle'; }
+  setLine() { this.mode = 'line'; }
+  setText() { this.mode = 'text'; }
 }

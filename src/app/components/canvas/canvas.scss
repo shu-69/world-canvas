@@ -1,3 +1,62 @@
+.toolbar {
+    position: absolute;
+    width: -webkit-fill-available;
+    display: flex;
+    justify-content: flex-end;
+    padding: 5px;
+    gap: 5px;
+    align-items: center;
+
+    button {
+        cursor: pointer;
+        border: none;
+    }
+
+    button.round {
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        font-size: 16px;
+    }
+
+    button.undo, button.redo {
+        width: 40px;
+        height: 34px;
+        border-radius: 10px;
+        font-size: 14px;
+    }
+
+    button.insert-image-button {
+        width: 40px;
+        height: 34px;
+        padding: 0;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    button.export {
+        // width: 40px;
+        height: 34px;
+        border-radius: 10px;
+        padding: 5px 10px;
+        font-size: 14px;
+    }
+
+    input.color-picker {
+        border-radius: 15px;
+        width: 60px;
+        height: 40px;
+        border: none;
+        padding: 5px 10px;
+
+        &::-webkit-color-swatch {
+            border-radius: 6px; /* 👈 inner radius */
+            border: none;
+        }
+    }
+
+}
 .canvas-wrapper {
     width: 100vw;
     height: 100vh;
