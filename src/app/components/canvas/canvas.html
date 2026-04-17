@@ -2,10 +2,10 @@
     <canvas #canvas></canvas>
 </div> -->
 <div class="toolbar">
-  <button class="round" (click)="setPen()">
+  <button class="round" (click)="setPen()" matTooltip="Select Pen tool" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-ss-pen-clip"></i>
   </button>
-  <button class="round" (click)="setEraser()">
+  <button class="round" (click)="setEraser()" matTooltip="Select Eraser tool" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-sr-eraser"></i>
   </button>
   <button class="round">
@@ -14,25 +14,25 @@
   <!-- <button class="round" (click)="setRect()">▭</button>
   <button class="round" (click)="setCircle()">⬭</button>
   <button class="round" (click)="setLine()">╱</button> -->
-  <button class="round" (click)="setText()">
+  <button class="round" (click)="setText()" matTooltip="Insert text" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-sr-text-box-edit"></i>
   </button>
 
   <input class="color-picker" type="color" [(ngModel)]="color" (change)="setColor()" />
   <input type="range" [(ngModel)]="brushSize" min="1" max="20" (change)="setSize()" />
 
-  <button class="undo" (click)="undo()">
+  <button class="undo" (click)="undo()" matTooltip="Undo" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-br-undo-alt"></i>
   </button>
-  <button class="redo" (click)="redo()">
+  <button class="redo" (click)="redo()" matTooltip="Redo" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-br-redo-alt"></i>
   </button>
 
-  <button class="insert-image-button" (click)="redo()">
+  <button class="insert-image-button" (click)="redo()" matTooltip="Insert image" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-sr-add-image"></i>
   </button>
 
-  <button class="export" (click)="exportCanvas()">
+  <button class="export" (click)="exportCanvas()" matTooltip="Export canvas" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-sr-file-export"></i>
     Export
   </button>

@@ -9,6 +9,6 @@
         <app-loader [loaderText]="loaderText()"></app-loader>
     </div>
 }
-<app-canvas></app-canvas>
+<app-canvas (loadingChange)="loadingChange($event)"></app-canvas>
 
 <router-outlet />

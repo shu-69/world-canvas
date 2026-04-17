@@ -1,22 +1,25 @@
-import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, ElementRef, EventEmitter, Output, OnInit } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { getFirestore } from 'firebase/firestore';
 import { collection, addDoc, getDocs, onSnapshot } from 'firebase/firestore';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-canvas',
-  imports: [HttpClientModule, FormsModule],
+  imports: [HttpClientModule, FormsModule, MatTooltipModule],
   templateUrl: './canvas.html',
   styleUrl: './canvas.scss',
   standalone: true
 })
-export class Canvas implements AfterViewInit {
+export class Canvas implements OnInit, AfterViewInit {
   protected db = getFirestore();
   
   color: string = '#000000';
   brushSize: number = 3;
   mode: 'pen' | 'eraser' | 'rect' | 'circle' | 'line' | 'text' = 'pen';
+  
+  tooltipShowDelay = 1000;
 
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('CanvasWrapper') canvasWrapper!: ElementRef<HTMLDivElement>;
@@ -25,6 +28,12 @@ export class Canvas implements AfterViewInit {
   drawing = false;
   strokes: any[] = [];
   redoStack: any[] = [];
+
+  @Output() loadingChange = new EventEmitter<boolean>();
+
+  ngOnInit() {
+    this.loadingChange.emit(true);
+  }
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
@@ -147,7 +156,14 @@ export class Canvas implements AfterViewInit {
   listenToCanvas() {
     const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
 
+    let isFirstLoad = true;
+
     onSnapshot(strokesRef, snapshot => {
+
+      if (isFirstLoad) {
+        this.strokes = [];
+      }
+
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
           const stroke = change.doc.data();
@@ -156,6 +172,11 @@ export class Canvas implements AfterViewInit {
           this.drawStroke(stroke);
         }
       });
+
+      if (isFirstLoad) {
+        this.loadingChange.emit(false);
+        isFirstLoad = false;
+      }
     });
   }
 

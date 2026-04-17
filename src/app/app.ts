@@ -33,14 +33,38 @@ export class App {
     }, 8000);
 
     const emojis = [':)', '///', ';)'];
-    const baseText = this.loaderText();8
+    const baseText = this.loaderText();
     let index = 0;
 
-    this.intervalId = setInterval(() => {
+    this.intervalId = setInterval(() => { // ::TODO:: make this simple
       this.ngZone.run(() => {
         this.loaderText.set(baseText + ' ' + emojis[index]);
         index = (index + 1) % emojis.length;
       });
     }, 1000);
+  }
+
+  hideLoader() {
+    this.isLoaderActive.set(false); 
+  }
+
+  loadingChange(event: boolean) {
+    this.isLoaderActive.set(event);
+
+    if(event){ 
+      const emojis = [':)', '///', ';)'];
+      const baseText = this.loaderText();
+      let index = 0;
+
+      this.intervalId = setInterval(() => { // ::TODO:: make this simple
+        this.ngZone.run(() => {
+          this.loaderText.set(baseText + ' ' + emojis[index]);
+          index = (index + 1) % emojis.length;
+        });
+      }, 1000);
+    } else {
+      clearInterval(this.intervalId);
+    }
+
   }
 }
