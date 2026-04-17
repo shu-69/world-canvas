@@ -1,7 +1,8 @@
 <!-- <div #CanvasWrapper class="canvas-wrapper">
     <canvas #canvas></canvas>
 </div> -->
-<div class="toolbar">
+@if(toolbarVisible()) {
+<div class="toolbar" @toolbarAnimation>
   <button class="round" (click)="setPen()" matTooltip="Select Pen tool" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-ss-pen-clip"></i>
   </button>
@@ -38,6 +39,7 @@
   </button>
   <!-- <button (click)="clear()">🗑 Clear</button> -->
 </div>
+}
 
 <div #CanvasWrapper class="canvas-wrapper">
   <canvas #canvas></canvas>

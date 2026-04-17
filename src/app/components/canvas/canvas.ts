@@ -1,16 +1,38 @@
-import { Component, AfterViewInit, ViewChild, ElementRef, EventEmitter, Output, OnInit } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, ElementRef, EventEmitter, Output, OnInit, computed, signal } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { getFirestore } from 'firebase/firestore';
 import { collection, addDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 
 @Component({
   selector: 'app-canvas',
   imports: [HttpClientModule, FormsModule, MatTooltipModule],
   templateUrl: './canvas.html',
   styleUrl: './canvas.scss',
-  standalone: true
+  standalone: true,
+  animations: [
+    trigger('toolbarAnimation', [
+      transition(':enter', [
+        query('.toolbar button, .toolbar input', [
+          style({
+            opacity: 0,
+            transform: 'translateX(40px)'
+          }),
+          stagger(-60, [
+            animate(
+              '200ms cubic-bezier(0.22, 1, 0.36, 1)', // cubic-bezier(0.22, 1, 0.36, 1) // ease-out
+              style({
+                opacity: 1,
+                transform: 'translateX(0)'
+              })
+            )
+          ])
+        ])
+      ])
+    ])
+  ]
 })
 export class Canvas implements OnInit, AfterViewInit {
   protected db = getFirestore();
@@ -28,6 +50,8 @@ export class Canvas implements OnInit, AfterViewInit {
   drawing = false;
   strokes: any[] = [];
   redoStack: any[] = [];
+
+  toolbarVisible = signal<boolean>(false); // computed(() => this.loadingChange.subscribe((state: boolean) => { return state; })); // computed(() => !this.loader.isLoading());
 
   @Output() loadingChange = new EventEmitter<boolean>();
 
@@ -176,6 +200,7 @@ export class Canvas implements OnInit, AfterViewInit {
       if (isFirstLoad) {
         this.loadingChange.emit(false);
         isFirstLoad = false;
+        this.toolbarVisible.set(true);
       }
     });
   }

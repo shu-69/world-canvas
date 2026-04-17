@@ -2,11 +2,12 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { Canvas } from './components/canvas/canvas';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
-export const appConfig: ApplicationConfig = {
+export const  appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes)
+    provideRouter(routes),
+    provideAnimations()
   ]
 };
