@@ -9,9 +9,34 @@
   <button class="round" (click)="setEraser()" matTooltip="Select Eraser tool" [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-sr-eraser"></i>
   </button>
-  <button class="round">
+  <button class="round" 
+    [matMenuTriggerFor]="shapeMenu"
+    #shapeTrigger="matMenuTrigger"
+    (mouseenter)="shapeTrigger.openMenu()"
+    matTooltip="Shapes" 
+    [matTooltipShowDelay]="tooltipShowDelay">
     <i class="fi fi-ss-resources"></i>
   </button>
+
+  <mat-menu #shapeMenu="matMenu" class="shapes-menu" (mouseleave)="shapeTrigger.closeMenu()">
+    <button class="round" mat-menu-item (click)="setShape('rect')"><i class="fi fi-rs-rectangle-horizontal"></i></button>
+    <button class="round" mat-menu-item (click)="setShape('circle')"><i class="fi fi-rr-circle"></i></button>
+    <button class="round" mat-menu-item (click)="setShape('line')"><i class="fi fi-br-slash"></i></button>
+    <button class="round" mat-menu-item (click)="setShape('triangle')"><i class="fi fi-rs-triangle"></i></button>
+  </mat-menu>
+  <!-- <div class="shape-menu" (mouseenter)="showShapes = true" (mouseleave)="showShapes = false">
+    <button class="round" matTooltip="Shapes" [matTooltipShowDelay]="tooltipShowDelay">
+      <i class="fi fi-ss-resources"></i>
+    </button>
+    @if(showShapes) {
+      <div class="shape-submenu" @shapeMenuAnim>
+        <button class="round" (click)="setShape('rect')" matTooltip="Rectangle" [matTooltipShowDelay]="tooltipShowDelay">▭</button>
+        <button class="round" (click)="setShape('circle')" matTooltip="Circle" [matTooltipShowDelay]="tooltipShowDelay">⬭</button>
+        <button class="round" (click)="setShape('line')" matTooltip="Line" [matTooltipShowDelay]="tooltipShowDelay">╱</button>
+        <button class="round" (click)="setShape('triangle')" matTooltip="Triangle" [matTooltipShowDelay]="tooltipShowDelay">△</button>
+      </div>
+    }
+  </div> -->
   <!-- <button class="round" (click)="setRect()">▭</button>
   <button class="round" (click)="setCircle()">⬭</button>
   <button class="round" (click)="setLine()">╱</button> -->

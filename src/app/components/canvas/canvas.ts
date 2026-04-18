@@ -5,10 +5,11 @@ import { deleteDoc, doc, getFirestore } from 'firebase/firestore';
 import { collection, addDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
+import { MatMenuModule } from '@angular/material/menu';
 
 @Component({
   selector: 'app-canvas',
-  imports: [HttpClientModule, FormsModule, MatTooltipModule],
+  imports: [HttpClientModule, FormsModule, MatTooltipModule, MatMenuModule],
   templateUrl: './canvas.html',
   styleUrl: './canvas.scss',
   standalone: true,
@@ -31,6 +32,15 @@ import { trigger, transition, style, animate, query, stagger } from '@angular/an
           ])
         ])
       ])
+    ]),
+    trigger('shapeMenuAnim', [ // not using anymore
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(-10px)' }),
+        animate('0ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ]),
+      transition(':leave', [
+        animate('100ms ease-in', style({ opacity: 0, transform: 'translateY(-10px)' }))
+      ])
     ])
   ]
 })
@@ -39,7 +49,10 @@ export class Canvas implements OnInit, AfterViewInit {
   
   color: string = '#000000';
   brushSize: number = 6;
-  mode: 'pen' | 'eraser' | 'rect' | 'circle' | 'line' | 'text' = 'pen';
+  mode: 'pen' | 'eraser' | 'rect' | 'circle' | 'line' | 'triangle' | 'text' = 'pen';
+  showShapes = false;
+  startX = 0;
+  startY = 0;
   
   tooltipShowDelay = 1000;
 
@@ -68,7 +81,7 @@ export class Canvas implements OnInit, AfterViewInit {
 
   ngOnInit() {
     this.loadingChange.emit(true);
-    this.clearFirestore();
+    // this.clearFirestore();
   }
 
   ngAfterViewInit() {
@@ -94,25 +107,56 @@ export class Canvas implements OnInit, AfterViewInit {
   start(e: MouseEvent) {
     this.drawing = true;
     this.onActivity.emit();
-
+    this.startX = e.offsetX;
+    this.startY = e.offsetY;
     this.ctx.beginPath();
     this.ctx.moveTo(e.offsetX, e.offsetY);
 
     this.currentStroke = {
+      type: this.mode,
       points: [{ x: e.offsetX, y: e.offsetY }],
       color: this.color,
       width: this.brushSize
     };
-
-    // this.strokes.push(stroke);
   }
 
   draw(e: MouseEvent) {
     if (!this.drawing) return;
     this.onActivity.emit();
-    this.ctx.lineTo(e.offsetX, e.offsetY);
-    this.ctx.stroke();
     this.currentStroke.points.push({ x: e.offsetX, y: e.offsetY });
+
+    if (this.mode === 'pen') {
+      this.ctx.lineTo(e.offsetX, e.offsetY);
+      this.ctx.stroke();
+    } else {
+      this.redraw();
+      this.drawShapePreview(this.startX, this.startY, e.offsetX, e.offsetY);
+    }
+  }
+
+  drawShapePreview(x1: number, y1: number, x2: number, y2: number) {
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = this.color;
+    this.ctx.lineWidth = this.brushSize;
+
+    if (this.mode === 'rect') {
+      this.ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    } else if (this.mode === 'circle') {
+      const rx = (x2 - x1) / 2;
+      const ry = (y2 - y1) / 2;
+      this.ctx.ellipse(x1 + rx, y1 + ry, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
+      this.ctx.stroke();
+    } else if (this.mode === 'line') {
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    } else if (this.mode === 'triangle') {
+      this.ctx.moveTo(x1 + (x2 - x1) / 2, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.lineTo(x1, y2);
+      this.ctx.closePath();
+      this.ctx.stroke();
+    }
   }
 
   undo() {
@@ -258,15 +302,26 @@ export class Canvas implements OnInit, AfterViewInit {
     this.ctx.strokeStyle = stroke.color;
     this.ctx.lineWidth = stroke.width;
 
-    stroke.points.forEach((p: any, index: number) => {
-      if (index === 0) {
-        this.ctx.moveTo(p.x, p.y);
-      } else {
-        this.ctx.lineTo(p.x, p.y);
-      }
-    });
+    const pts = stroke.points;
+    const x1 = pts[0].x;
+    const y1 = pts[0].y;
+    const x2 = pts[pts.length - 1].x;
+    const y2 = pts[pts.length - 1].y;
 
-    this.ctx.stroke();
+    if (!stroke.type || stroke.type === 'pen') {
+      pts.forEach((p: any, i: number) => {
+        if (i === 0) this.ctx.moveTo(p.x, p.y);
+        else this.ctx.lineTo(p.x, p.y);
+      });
+      this.ctx.stroke();
+    } else {
+      this.ctx.strokeStyle = stroke.color;
+      this.ctx.lineWidth = stroke.width;
+      const savedMode = this.mode;
+      this.mode = stroke.type;
+      this.drawShapePreview(x1, y1, x2, y2);
+      this.mode = savedMode;
+    }
   }
 
   drawGrid(spacing: number = 25) {
@@ -331,6 +386,12 @@ export class Canvas implements OnInit, AfterViewInit {
     } else {
       canvas.style.cursor = this.cursorMap[mode] ?? this.cursorMap['default'];
     }
+  }
+
+  setShape(shape: 'rect' | 'circle' | 'line' | 'triangle') {
+    this.mode = shape;
+    this.setCursor(shape);
+    this.showShapes = false;
   }
 
   setColor() { this.ctx.strokeStyle = this.color; }
