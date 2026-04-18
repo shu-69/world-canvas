@@ -38,7 +38,7 @@ export class Canvas implements OnInit, AfterViewInit {
   protected db = getFirestore();
   
   color: string = '#000000';
-  brushSize: number = 3;
+  brushSize: number = 6;
   mode: 'pen' | 'eraser' | 'rect' | 'circle' | 'line' | 'text' = 'pen';
   
   tooltipShowDelay = 1000;
@@ -53,7 +53,18 @@ export class Canvas implements OnInit, AfterViewInit {
 
   toolbarVisible = signal<boolean>(false); // computed(() => this.loadingChange.subscribe((state: boolean) => { return state; })); // computed(() => !this.loader.isLoading());
 
+  cursorMap: Record<string, string> = {
+    pen: 'url(/assets/cursor-circle.svg) 12 12, crosshair',
+    eraser: 'url(/assets/cursor-circle.svg) 12 12, crosshair',
+    text: 'text',
+    rect: 'crosshair',
+    circle: 'crosshair',
+    line: 'crosshair',
+    default: 'url(/assets/cursor-arrow.svg) 0 0, auto'
+  };
+
   @Output() loadingChange = new EventEmitter<boolean>();
+  @Output() onActivity = new EventEmitter<void>();
 
   ngOnInit() {
     this.loadingChange.emit(true);
@@ -70,39 +81,37 @@ export class Canvas implements OnInit, AfterViewInit {
     this.drawGrid();
 
     this.listenToCanvas();
+    this.setCursor('pen');
 
     canvas.addEventListener('mousedown', this.start.bind(this));
     canvas.addEventListener('mousemove', this.draw.bind(this));
     canvas.addEventListener('mouseup', this.stop.bind(this));
   }
 
+  currentStroke: any = null;
+
   start(e: MouseEvent) {
     this.drawing = true;
+    this.onActivity.emit();
 
     this.ctx.beginPath();
     this.ctx.moveTo(e.offsetX, e.offsetY);
 
-    const stroke = {
+    this.currentStroke = {
       points: [{ x: e.offsetX, y: e.offsetY }],
       color: this.color,
       width: this.brushSize
     };
 
-    this.strokes.push(stroke);
+    // this.strokes.push(stroke);
   }
 
-  draw(e: MouseEvent) {
+  draw(e: MouseEvent) {``
     if (!this.drawing) return;
-
-    const currentStroke = this.strokes[this.strokes.length - 1];
-
+    this.onActivity.emit();
     this.ctx.lineTo(e.offsetX, e.offsetY);
     this.ctx.stroke();
-
-    currentStroke.points.push({
-      x: e.offsetX,
-      y: e.offsetY
-    });
+    this.currentStroke.points.push({ x: e.offsetX, y: e.offsetY });
   }
 
   undo() {
@@ -121,12 +130,9 @@ export class Canvas implements OnInit, AfterViewInit {
 
   async stop() {
     if (!this.drawing) return;
-
     this.drawing = false;
-
-    const lastStroke = this.strokes[this.strokes.length - 1];
-
-    await this.saveStroke(lastStroke);
+    await this.saveStroke(this.currentStroke);
+    this.currentStroke = null;
   }
 
   clear() {
@@ -177,25 +183,41 @@ export class Canvas implements OnInit, AfterViewInit {
     }
   }
   
+  // listenToCanvas() {
+  //   const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
+
+  //   let isFirstLoad = true;
+
+  //   onSnapshot(strokesRef, snapshot => {
+
+  //     if (isFirstLoad) {
+  //       this.strokes = [];
+  //     }
+
+  //     snapshot.docChanges().forEach(change => {
+  //       if (change.type === 'added') {
+  //         const stroke = change.doc.data();
+
+  //         this.strokes.push(stroke);
+  //         this.drawStroke(stroke);
+  //       }
+  //     });
+
+  //     if (isFirstLoad) {
+  //       this.loadingChange.emit(false);
+  //       isFirstLoad = false;
+  //       this.toolbarVisible.set(true);
+  //     }
+  //   });
+  // }
+
   listenToCanvas() {
     const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
-
     let isFirstLoad = true;
 
     onSnapshot(strokesRef, snapshot => {
-
-      if (isFirstLoad) {
-        this.strokes = [];
-      }
-
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          const stroke = change.doc.data();
-
-          this.strokes.push(stroke);
-          this.drawStroke(stroke);
-        }
-      });
+      this.strokes = snapshot.docs.map(doc => doc.data());
+      this.redraw();
 
       if (isFirstLoad) {
         this.loadingChange.emit(false);
@@ -282,12 +304,36 @@ export class Canvas implements OnInit, AfterViewInit {
     canvas.height = rect.height;
   }
 
+  setCursor(mode: string, size: number = this.brushSize) {
+    const canvas = this.canvasRef.nativeElement;
+
+    if (mode === 'pen') {
+      size = size * 1.5;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" fill="#FFF" stroke="#000" stroke-width="2"/>
+      </svg>`;
+      const encoded = encodeURIComponent(svg);
+      canvas.style.cursor = `url("data:image/svg+xml,${encoded}") ${size/2} ${size/2}, crosshair`;
+    } else if (mode === 'eraser') {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size * 2}" height="${size * 2}" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" fill="#FFF" stroke="#000" stroke-width="2"/>
+      </svg>`;
+      const encoded = encodeURIComponent(svg);
+      canvas.style.cursor = `url("data:image/svg+xml,${encoded}") ${size} ${size}, crosshair`;
+    } else {
+      canvas.style.cursor = this.cursorMap[mode] ?? this.cursorMap['default'];
+    }
+  }
+
   setColor() { this.ctx.strokeStyle = this.color; }
-  setSize() { this.ctx.lineWidth = this.brushSize; }
-  setPen() { this.mode = 'pen'; }
-  setEraser() { this.mode = 'eraser'; }
+  setSize() { 
+    this.ctx.lineWidth = this.brushSize;
+    this.setCursor(this.mode);
+   }
+  setPen() { this.mode = 'pen'; this.setCursor('pen'); }
+  setEraser() { this.mode = 'eraser'; this.setCursor('eraser'); }
+  setText() { this.mode = 'text'; this.setCursor('text'); }
   setRect() { this.mode = 'rect'; }
   setCircle() { this.mode = 'circle'; }
   setLine() { this.mode = 'line'; }
-  setText() { this.mode = 'text'; }
 }

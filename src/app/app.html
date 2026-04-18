@@ -9,6 +9,20 @@
         <app-loader [loaderText]="loaderText()"></app-loader>
     </div>
 }
-<app-canvas (loadingChange)="loadingChange($event)"></app-canvas>
+<app-canvas (loadingChange)="loadingChange($event)" (onActivity)="onCanvasActivity()"></app-canvas>
+
+@if(isFooterVisible()) {
+    <footer class="footer" @footerAnimation>
+    <span>© 2026 World Canvas — Built by 
+        <a href="https://github.com/shu-69" target="_blank">shu-69</a>
+    </span>
+    <span class="divider">|</span>
+    <a href="https://github.com/shu-69/world-canvas" target="_blank">
+    <i class="fi fi-brands-github" style="translate: 0 1px; display: inline-block;"></i> Star on GitHub ⭐
+    </a>
+    <span class="divider">|</span>
+    <span>Icons by <a href="https://flaticon.com" target="_blank">Flaticon Uicons</a></span>
+    </footer>
+}
 
 <router-outlet />

@@ -4,18 +4,32 @@ import { Canvas } from './components/canvas/canvas';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Loader } from './components/loader/loader';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, CommonModule, FormsModule, ReactiveFormsModule, Canvas, Loader],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
+  animations: [
+    trigger('footerAnimation', [
+      transition(':enter', [
+        style({ transform: 'translateY(100%)' }),
+        animate('300ms cubic-bezier(0.22, 1, 0.36, 1)', style({ transform: 'translateY(0)' }))
+      ]),
+      transition(':leave', [
+        animate('300ms cubic-bezier(0.22, 1, 0.36, 1)', style({ transform: 'translateY(100%)' }))
+      ])
+    ])
+  ]
 })
 export class App {
   protected readonly title = signal('world-canvas');
   isLoaderActive = signal<boolean>(false);
   loaderText = signal<string>('Please Wait');
+
+  isFooterVisible = signal<boolean>(false);
     
   constructor(private ngZone: NgZone) {
     // this.showLoader();
@@ -50,6 +64,7 @@ export class App {
 
   loadingChange(event: boolean) {
     this.isLoaderActive.set(event);
+    this.isFooterVisible.set(!event);
 
     if(event){ 
       const emojis = [':)', '///', ';)'];
@@ -67,4 +82,18 @@ export class App {
     }
 
   }
+
+  activityTimeout: any;
+
+  onCanvasActivity() {
+    this.hideFooter();
+    clearTimeout(this.activityTimeout);
+    this.activityTimeout = setTimeout(() => {
+      this.showFooter();
+    }, 6000); // 3 seconds
+  }
+
+  showFooter() { this.isFooterVisible.set(true); }
+  hideFooter() { this.isFooterVisible.set(false); }
+  toggleFooter() { this.isFooterVisible.update(v => !v); }
 }

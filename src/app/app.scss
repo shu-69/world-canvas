@@ -16,3 +16,31 @@
     top: 50%;
     transform: translateY(-50%);
 }
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: #ccc;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 100;
+
+  a {
+    color: #fff;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+
+  .divider { opacity: 0.4; }
+}
+
+* {
+  cursor: url('/assets/cursor-arrow.svg') 0 0, auto;
+}
