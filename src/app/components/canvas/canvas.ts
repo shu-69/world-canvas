@@ -1,7 +1,7 @@
 import { Component, AfterViewInit, ViewChild, ElementRef, EventEmitter, Output, OnInit, computed, signal } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { getFirestore } from 'firebase/firestore';
+import { deleteDoc, doc, getFirestore } from 'firebase/firestore';
 import { collection, addDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
@@ -68,6 +68,7 @@ export class Canvas implements OnInit, AfterViewInit {
 
   ngOnInit() {
     this.loadingChange.emit(true);
+    this.clearFirestore();
   }
 
   ngAfterViewInit() {
@@ -106,7 +107,7 @@ export class Canvas implements OnInit, AfterViewInit {
     // this.strokes.push(stroke);
   }
 
-  draw(e: MouseEvent) {``
+  draw(e: MouseEvent) {
     if (!this.drawing) return;
     this.onActivity.emit();
     this.ctx.lineTo(e.offsetX, e.offsetY);
@@ -229,7 +230,7 @@ export class Canvas implements OnInit, AfterViewInit {
 
   redraw() {
     this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
-
+    this.drawGrid();
     this.strokes.forEach(stroke => {
       this.drawStroke(stroke);
     });
@@ -302,6 +303,13 @@ export class Canvas implements OnInit, AfterViewInit {
 
     canvas.width = rect.width;
     canvas.height = rect.height;
+  }
+
+  async clearFirestore() {
+    const strokesRef = collection(this.db, 'canvases', 'defaultCanvas', 'strokes');
+    const snapshot = await getDocs(strokesRef);
+    const deletes = snapshot.docs.map(d => deleteDoc(doc(this.db, 'canvases', 'defaultCanvas', 'strokes', d.id)));
+    await Promise.all(deletes);
   }
 
   setCursor(mode: string, size: number = this.brushSize) {

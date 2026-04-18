@@ -9,6 +9,11 @@
     gap: 5px;
     align-items: center;
     overflow: hidden;
+    pointer-events: none;
+
+    button, input {
+        pointer-events: all;
+    }
 
     @include mat.tooltip-overrides(( // not working
         container-color: orange,
